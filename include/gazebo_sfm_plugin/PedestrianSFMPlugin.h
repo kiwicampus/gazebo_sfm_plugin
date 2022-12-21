@@ -24,13 +24,23 @@
 // C++
 #include <algorithm>
 #include <string>
-#include <vector>
+#include <map>
 
 // Gazebo
 #include "gazebo/common/Plugin.hh"
 #include "gazebo/physics/physics.hh"
 #include "gazebo/util/system.hh"
 
+
+#include "rclcpp/rclcpp.hpp"
+#include <gazebo_ros/node.hpp>
+#include <std_msgs/msg/string.hpp>
+#include <std_msgs/msg/float64.hpp>
+#include <nav_msgs/msg/path.hpp>
+//#include <geometry_msgs/msg/point.hpp>
+
+//#include <geometry_msgs/PoseStamped.h>
+//#include <geometry_msgs/msg/posestamped.hpp>
 // Social Force Model
 #include <lightsfm/sfm.hpp>
 
@@ -50,10 +60,16 @@ public:
 public:
   virtual void Reset();
 
+private:
+  void timerCallback();
+
+
   /// \brief Function that is called every update cycle.
   /// \param[in] _info Timing information
 private:
   void OnUpdate(const common::UpdateInfo &_info);
+
+
 
   // private: void InitializePedestrians();
 
@@ -66,6 +82,61 @@ private:
   void HandlePedestrians();
 
   //-------------------------------------------------
+
+private:
+  double look_ahead_time = 5;
+
+private:
+  double dt_calculations = 0.2;
+
+  /// \brief iterations to calculate next positions
+private:
+  int iterations;
+
+  /// \brief temp calculated positions in x
+private:
+  std::vector<float> temp_next_positionsX;
+
+  /// \brief temp calculated positions in y
+private:
+  std::vector<float> temp_next_positionsY;
+
+  /// \brief next calculated positions in x
+private:
+  std::vector<float> next_positionsX;
+
+  /// \brief next calculated positions in y
+private:
+  std::vector<float> next_positionsY;
+
+  /// \brief temp calculated yaw angles
+private:
+  std::vector<float> temp_next_yaw_angles;
+
+  /// \brief next calculated yaw angles
+private:
+  std::vector<float> next_yaw_angles;
+
+private:
+  gazebo_ros::Node::SharedPtr ros_node_;
+
+private:
+  rclcpp::TimerBase::SharedPtr timer_;
+
+// private:
+//   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr xPublisher_;
+
+private:
+  rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr PathPublisher_;
+
+private:
+  std::map<int, rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr> PathPublisherMap;
+
+// private:
+//   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr nextPosePublisher_;
+
+// private:
+//   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr yPublisher_;
 
   /// \brief this actor as a SFM agent
 private:

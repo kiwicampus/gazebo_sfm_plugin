@@ -19,29 +19,61 @@
 /***********************************************************************/
 
 #include <functional>
-#include <stdio.h>
+#include <stdio.h>  
 #include <string>
+#include <vector>
 
 //#include <ignition/math.hh>
 //#include <ignition/math/gzmath.hh>
 #include <gazebo_sfm_plugin/PedestrianSFMPlugin.h>
 
+
+#include <chrono>
+using namespace std;
+using namespace std::chrono;
+
+// Use auto keyword to avoid typing long
+// type definitions to get the timepoint
+// at this instant use function now()
+
+
 using namespace gazebo;
 GZ_REGISTER_MODEL_PLUGIN(PedestrianSFMPlugin)
-
 #define WALKING_ANIMATION "walking"
 
 /////////////////////////////////////////////////
-PedestrianSFMPlugin::PedestrianSFMPlugin() {}
+PedestrianSFMPlugin::PedestrianSFMPlugin() {
+}
 
 /////////////////////////////////////////////////
 void PedestrianSFMPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
+  cout << "Hola. Primera vez en load" << std::endl;
+  
+  
+  this->ros_node_ = gazebo_ros::Node::Get();
+
+  this->timer_ = this->ros_node_->create_wall_timer(
+            std::chrono::milliseconds(1000),
+            std::bind(&PedestrianSFMPlugin::timerCallback, this));
+  
+  //this->xPublisher_ = this->ros_node_->create_publisher<std_msgs::msg::Float64>("next_x_positions", 10);
+  //this->yPublisher_ = this->ros_node_->create_publisher<std_msgs::msg::Float64>("next_y_positions", 10);
+ 
+  //this->nextPosePublisher_ = this->ros_node_->create_publisher<geometry_msgs::msg::PoseStamped>("test", 10);
+
+  // Calculate number of iterations for next calculated positions
+  this->iterations = (int) this->look_ahead_time / this->dt_calculations;
   this->sdf = _sdf;
   this->actor = boost::dynamic_pointer_cast<physics::Actor>(_model);
   this->world = this->actor->GetWorld();
-
   this->sfmActor.id = this->actor->GetId();
+  cout << "ID: "<< this->sfmActor.id<< std::endl;
 
+
+  // Create topics for each actor path
+
+  //this->PathPublisher_  = this->ros_node_->create_publisher<nav_msgs::msg::Path>("path_" + to_string(this->sfmActor.id), 10);
+  this->PathPublisherMap.insert({this->sfmActor.id, this->ros_node_->create_publisher<nav_msgs::msg::Path>("path_" + to_string(this->sfmActor.id), 10)});
   // Initialize sfmActor position
   ignition::math::Vector3d pos = this->actor->WorldPose().Pos();
   ignition::math::Vector3d rpy = this->actor->WorldPose().Rot().Euler();
@@ -52,6 +84,8 @@ void PedestrianSFMPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
   this->sfmActor.linearVelocity = linvel.Length();
   ignition::math::Vector3d angvel = this->actor->WorldAngularVel();
   this->sfmActor.angularVelocity = angvel.Z(); // Length()
+
+
 
   // Read in the maximum velocity of the pedestrian
   if (_sdf->HasElement("velocity"))
@@ -136,9 +170,44 @@ void PedestrianSFMPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
       std::bind(&PedestrianSFMPlugin::OnUpdate, this, std::placeholders::_1)));
 
   this->Reset();
+  // Function load is called for each actor defined in the .world file
+  
+  cout<< "Chao de load"<< std::endl;
 }
 
-/////////////////////////////////////////////////
+
+void PedestrianSFMPlugin::timerCallback() {
+
+        RCLCPP_INFO(this->ros_node_->get_logger(), "Helloooo from ROS2");
+        for (float y : this->next_positionsY){
+          cout << "Element in y = " << y << std::endl;
+        }
+        // for (float yaw : this->next_yaw_angles){
+        //   cout << "yaw = " << yaw << std::endl;
+        // }
+
+
+        auto path = nav_msgs::msg::Path();
+        path.header.frame_id = "base_link";
+        //path.header.frame_id = to_string(this->sfmActor.id);
+        path.header.stamp = rclcpp::Clock().now();        
+
+        auto next_pose = geometry_msgs::msg::PoseStamped();
+
+        for (int i = 0; i < (int)this->next_positionsX.size(); i++) {
+            next_pose.pose.position.x = this->next_positionsX[i];
+            next_pose.pose.position.y = this->next_positionsY[i];
+            double orientation_z = sin(this->next_yaw_angles[i]/2);
+            double orientation_w = cos(this->next_yaw_angles[i]/2); 
+            next_pose.pose.orientation.z = orientation_z;
+            next_pose.pose.orientation.w = orientation_w; 
+            path.poses.push_back(next_pose);
+        }
+        //this->PathPublisher_->publish(path);  
+        this->PathPublisherMap.find(this->sfmActor.id)->second->publish(path);
+        
+    }
+
 void PedestrianSFMPlugin::Reset() {
   // this->velocity = 0.8;
   this->lastUpdate = 0;
@@ -277,35 +346,92 @@ void PedestrianSFMPlugin::HandlePedestrians() {
 /////////////////////////////////////////////////
 void PedestrianSFMPlugin::OnUpdate(const common::UpdateInfo &_info) {
   // Time delta
+  //cout << "Start function" << std::endl;
   double dt = (_info.simTime - this->lastUpdate).Double();
-
+  //cout << "dt = " << dt << std::endl;
   ignition::math::Pose3d actorPose = this->actor->WorldPose();
 
-  // update closest obstacle
+  // Save current values of sfmActor
+  utils::Vector2d initPos = sfmActor.position;
+  utils::Angle initYaw = sfmActor.yaw;
+  utils::Vector2d real_velocity = sfmActor.velocity;
+  double real_linearVelocity = sfmActor.linearVelocity;
+  double real_angularVelocity = sfmActor.angularVelocity;
+  utils::Vector2d real_movement = sfmActor.movement;
+  std::list<sfm::Goal> real_goals = sfmActor.goals;
+
+  // Clear content of temporary vectors
+  this->temp_next_positionsX.clear();
+  this->temp_next_positionsY.clear();
+  this->temp_next_yaw_angles.clear();
+
+  // Calculate future positions
+  for (int i = 1; i <= this->iterations; ++i) {
+    HandleObstacles();
+    HandlePedestrians();
+    
+  // Compute Social Forces
+    sfm::SFM.computeForces(this->sfmActor, this->otherActors);
+  // Update model
+    sfm::SFM.updatePosition(this->sfmActor, this->dt_calculations);
+
+
+    // Add position in x and y to the temporary vectors
+    this->temp_next_positionsX.push_back(this->sfmActor.position.getX());
+    this->temp_next_positionsY.push_back(this->sfmActor.position.getY());
+    this->temp_next_yaw_angles.push_back(this->sfmActor.yaw.toRadian());
+  }
+
+  //Copy content of temporary vectors to the real vectors
+  this->next_positionsX = this->temp_next_positionsX;
+  this->next_positionsY = this->temp_next_positionsY;
+  this->next_yaw_angles = this->temp_next_yaw_angles;
+
+  // Check size of position vectors
+  // cout << "Size X = " << this->next_positionsX.size() << std::endl;
+  // cout << "Size Y = " << this->next_positionsY.size() << std::endl;
+
+  // // Print current elements of vector of positions in y
+  // for (float x : this->next_positionsY){
+  //       cout << "Element in y = " << x << std::endl;
+  // }
+
+
+  // Set current values 
+  this->sfmActor.position = initPos;
+  this->sfmActor.yaw = initYaw;
+  this->sfmActor.velocity = real_velocity;
+  this->sfmActor.linearVelocity = real_linearVelocity;
+  this->sfmActor.angularVelocity = real_angularVelocity;
+  this->sfmActor.movement = real_movement;
+  this->sfmActor.goals = real_goals;
+  
+
+  
+
+
   HandleObstacles();
 
   // update pedestrian around
   HandlePedestrians();
 
+
+  // Calculate current next position
+
   // Compute Social Forces
+
   sfm::SFM.computeForces(this->sfmActor, this->otherActors);
 
   // Update model
   sfm::SFM.updatePosition(this->sfmActor, dt);
 
+
+
   utils::Angle h = this->sfmActor.yaw;
   utils::Angle add = utils::Angle::fromRadian(1.5707);
   h = h + add;
   double yaw = h.toRadian();
-  // double yaw = this->sfmActor.yaw.toRadian();
-  // Rotate in place, instead of jumping.
-  // if (std::abs(yaw.Radian()) > IGN_DTOR(10))
-  //{
-  //  ActorPose.Rot() = ignition::math::Quaterniond(1.5707, 0, rpy.Z()+
-  //      yaw.Radian()*0.001);
-  //}
-  // else
-  //{
+
   ignition::math::Vector3d rpy = actorPose.Rot().Euler();
   utils::Angle current = utils::Angle::fromRadian(rpy.Z());
   double diff = (h - current).toRadian();
@@ -313,11 +439,12 @@ void PedestrianSFMPlugin::OnUpdate(const common::UpdateInfo &_info) {
     current = current + utils::Angle::fromRadian(diff * 0.005);
     yaw = current.toRadian();
   }
+
+
   actorPose.Pos().X(this->sfmActor.position.getX());
   actorPose.Pos().Y(this->sfmActor.position.getY());
   actorPose.Rot() =
       ignition::math::Quaterniond(1.5707, 0, yaw); // rpy.Z()+yaw.Radian());
-  //}
 
   // Make sure the actor stays within bounds
   // actorPose.Pos().X(std::max(-3.0, std::min(3.5, actorPose.Pos().X())));
@@ -333,4 +460,8 @@ void PedestrianSFMPlugin::OnUpdate(const common::UpdateInfo &_info) {
   this->actor->SetScriptTime(this->actor->ScriptTime() +
                              (distanceTraveled * this->animationFactor));
   this->lastUpdate = _info.simTime;
+
 }
+
+
+
