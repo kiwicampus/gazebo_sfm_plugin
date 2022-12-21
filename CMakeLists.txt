@@ -10,6 +10,9 @@ find_package(rclcpp REQUIRED)
 find_package(gazebo_ros REQUIRED)
 find_package(Boost REQUIRED COMPONENTS thread)
 find_package(gazebo REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
 
 
 include_directories(include)
@@ -32,6 +35,9 @@ ament_target_dependencies(PedestrianSFMPlugin
   "rclcpp" 
   "gazebo" 
   "gazebo_ros"
+  "std_msgs"
+  "nav_msgs"
+  "geometry_msgs"
 )
 ament_export_libraries(PedestrianSFMPlugin)
 target_link_libraries(PedestrianSFMPlugin ${GAZEBO_LIBRARIES}) #${Boost_LIBRARIES
