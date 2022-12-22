@@ -57,6 +57,7 @@ void PedestrianSFMPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
   // Calculate number of iterations for next calculated positions
   this->iterations = (int) this->look_ahead_time / this->dt_calculations;
 
+  // Create sfmActor
   this->sdf = _sdf;
   this->actor = boost::dynamic_pointer_cast<physics::Actor>(_model);
   this->world = this->actor->GetWorld();
@@ -64,9 +65,9 @@ void PedestrianSFMPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
   cout << "ID: "<< this->sfmActor.id<< std::endl;
 
 
-  // Create topics for each actor path
-
+  // Add publisher to the map with sfmActor.id as key
   this->PathPublisherMap.insert({this->sfmActor.id, this->ros_node_->create_publisher<nav_msgs::msg::Path>("path_" + to_string(this->sfmActor.id), 10)});
+  
   // Initialize sfmActor position
   ignition::math::Vector3d pos = this->actor->WorldPose().Pos();
   ignition::math::Vector3d rpy = this->actor->WorldPose().Rot().Euler();
@@ -173,12 +174,15 @@ void PedestrianSFMPlugin::timerCallback() {
         //   cout << "Element in y = " << y << std::endl;
         // }
 
+        // Create path message
         auto path = nav_msgs::msg::Path();
         path.header.frame_id = "base_link";
         path.header.stamp = rclcpp::Clock().now();        
 
+        // Create pose message
         auto next_pose = geometry_msgs::msg::PoseStamped();
 
+        // Fill position and orientation values in pose message
         for (int i = 0; i < (int)this->next_positionsX.size(); i++) {
             next_pose.pose.position.x = this->next_positionsX[i];
             next_pose.pose.position.y = this->next_positionsY[i];
@@ -186,9 +190,12 @@ void PedestrianSFMPlugin::timerCallback() {
             double orientation_w = cos(this->next_yaw_angles[i]/2); 
             next_pose.pose.orientation.z = orientation_z;
             next_pose.pose.orientation.w = orientation_w; 
+
+            // Append pose to path message
             path.poses.push_back(next_pose);
         }
 
+        // Choose the publisher according to the sfmActor.id and publish to corresponding topic
         this->PathPublisherMap.find(this->sfmActor.id)->second->publish(path);
         
     }
@@ -345,7 +352,7 @@ void PedestrianSFMPlugin::OnUpdate(const common::UpdateInfo &_info) {
     sfm::SFM.updatePosition(this->sfmActor, this->dt_calculations);
 
 
-    // Add position in x and y to the temporary vectors
+    // Add position in x, y and angle yaw to the temporary vectors
     this->temp_next_positionsX.push_back(this->sfmActor.position.getX());
     this->temp_next_positionsY.push_back(this->sfmActor.position.getY());
     this->temp_next_yaw_angles.push_back(this->sfmActor.yaw.toRadian());
