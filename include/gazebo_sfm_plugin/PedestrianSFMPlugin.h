@@ -31,7 +31,7 @@
 #include "gazebo/physics/physics.hh"
 #include "gazebo/util/system.hh"
 
-
+// ROS
 #include "rclcpp/rclcpp.hpp"
 #include <gazebo_ros/node.hpp>
 #include <std_msgs/msg/string.hpp>
@@ -57,6 +57,7 @@ public:
 public:
   virtual void Reset();
 
+  // ROS Timer
 private:
   void timerCallback();
 
@@ -65,8 +66,6 @@ private:
   /// \param[in] _info Timing information
 private:
   void OnUpdate(const common::UpdateInfo &_info);
-
-
 
   // private: void InitializePedestrians();
 
@@ -80,13 +79,14 @@ private:
 
   //-------------------------------------------------
 
+  // Time to calculate future positions
 private:
   double look_ahead_time = 5;
 
 private:
   double dt_calculations = 0.2;
 
-  /// \brief iterations to calculate next positions
+  /// \brief iterations to calculate first next positions
 private:
   int iterations;
 
@@ -126,8 +126,34 @@ private:
 // private:
 //   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr PathPublisher_;
 
+  /// \brief Map of publishers. Each topic corresponds to the path of an actor. Key: sfmActor.id
 private:
   std::map<int, rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr> PathPublisherMap;
+
+private:
+  double dt_counter = 0;
+
+  // state of last calculated pose of sfmActor
+private:
+  utils::Vector2d lastPos;
+
+private:
+  utils::Angle lastYaw;
+
+private:
+  utils::Vector2d lastVelocity;
+
+private:
+  double lastLinearVelocity;
+
+private:
+  double lastAngularVelocity;
+  
+private:
+  utils::Vector2d lastMovement;
+
+private:
+  std::list<sfm::Goal> lastGoals;
 
 
   /// \brief this actor as a SFM agent
