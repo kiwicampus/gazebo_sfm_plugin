@@ -37,10 +37,7 @@
 #include <std_msgs/msg/string.hpp>
 #include <std_msgs/msg/float64.hpp>
 #include <nav_msgs/msg/path.hpp>
-//#include <geometry_msgs/msg/point.hpp>
 
-//#include <geometry_msgs/PoseStamped.h>
-//#include <geometry_msgs/msg/posestamped.hpp>
 // Social Force Model
 #include <lightsfm/sfm.hpp>
 
@@ -126,17 +123,12 @@ private:
 // private:
 //   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr xPublisher_;
 
-private:
-  rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr PathPublisher_;
+// private:
+//   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr PathPublisher_;
 
 private:
   std::map<int, rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr> PathPublisherMap;
 
-// private:
-//   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr nextPosePublisher_;
-
-// private:
-//   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr yPublisher_;
 
   /// \brief this actor as a SFM agent
 private:
