@@ -115,11 +115,11 @@
     <actor name="actor2">
       <pose>-1 -8 1.25 0 0 0</pose>
       <skin>
-        <filename>walk-blue.dae</filename> 
+        <filename>walk-red.dae</filename> 
         <scale>1.0</scale>
       </skin>
       <animation name="walking">
-        <filename>walk-blue.dae</filename> 
+        <filename>walk-red.dae</filename> 
         <scale>1.000000</scale>
         <interpolate_x>true</interpolate_x>
       </animation>
