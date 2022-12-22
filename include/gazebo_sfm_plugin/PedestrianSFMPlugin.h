@@ -61,7 +61,6 @@ public:
 private:
   void timerCallback();
 
-
   /// \brief Function that is called every update cycle.
   /// \param[in] _info Timing information
 private:
@@ -120,6 +119,7 @@ private:
 private:
   rclcpp::TimerBase::SharedPtr timer_;
 
+
 // private:
 //   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr xPublisher_;
 
@@ -132,6 +132,9 @@ private:
 
 private:
   double dt_counter = 0;
+
+private:
+  bool update = false;
 
   // state of last calculated pose of sfmActor
 private:
