@@ -126,7 +126,7 @@ private:
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr PathPublisher_;
 
 private:
-  bool update = false;
+  bool enable_update = false;
 
   // state of last calculated pose of sfmActor
 private:

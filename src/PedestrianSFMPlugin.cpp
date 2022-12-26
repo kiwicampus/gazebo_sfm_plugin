@@ -168,6 +168,8 @@ void PedestrianSFMPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
 
 void PedestrianSFMPlugin::Calculate_path_timerCallback() {
 
+  this->enable_update = true;
+
   RCLCPP_INFO(this->ros_node_->get_logger(), "Helloooo from ROS2");
   for (float y : this->next_positionsY){
     cout << "Element in y = " << y << std::endl;
@@ -175,39 +177,39 @@ void PedestrianSFMPlugin::Calculate_path_timerCallback() {
   cout << "Iterations: " << this->iterations << std::endl;
 
 
-  this->next_positionsX.clear();
-  this->next_positionsY.clear();
-  this->next_yaw_angles.clear();
+  // this->next_positionsX.clear();
+  // this->next_positionsY.clear();
+  // this->next_yaw_angles.clear();
 
-    // Reset current values 
-  this->copy_sfmActor.position = this->sfmActor.position;
-  this->copy_sfmActor.yaw = this->sfmActor.yaw;
-  this->copy_sfmActor.velocity = this->sfmActor.velocity;
-  this->copy_sfmActor.linearVelocity = this->sfmActor.linearVelocity;
-  this->copy_sfmActor.angularVelocity = this->sfmActor.angularVelocity;
-  this->copy_sfmActor.movement = this->sfmActor.movement;
-  this->copy_sfmActor.goals = this->sfmActor.goals;
-
-
-  // Calculate first future positions
-  for (int i = 0; i < this->iterations; i++) {
-
-        // These functions use the real actor model pose. We do not modify the real actor model pose
-        // HandleObstacles();
-        // HandlePedestrians();
+  //   // Reset current values 
+  // this->copy_sfmActor.position = this->sfmActor.position;
+  // this->copy_sfmActor.yaw = this->sfmActor.yaw;
+  // this->copy_sfmActor.velocity = this->sfmActor.velocity;
+  // this->copy_sfmActor.linearVelocity = this->sfmActor.linearVelocity;
+  // this->copy_sfmActor.angularVelocity = this->sfmActor.angularVelocity;
+  // this->copy_sfmActor.movement = this->sfmActor.movement;
+  // this->copy_sfmActor.goals = this->sfmActor.goals;
 
 
-        // Compute Social Forces
-        sfm::SFM.computeForces(this->copy_sfmActor, this->otherActors);
-        // Update model
-        sfm::SFM.updatePosition(this->copy_sfmActor, this->dt_calculations);
+  // // Calculate first future positions
+  // for (int i = 0; i < this->iterations; i++) {
+
+  //       // These functions use the real actor model pose. We do not modify the real actor model pose
+  //       // HandleObstacles();
+  //       // HandlePedestrians();
 
 
-        // Add position in x, y and angle yaw to the temporary vectors
-        this->next_positionsX.push_back(this->copy_sfmActor.position.getX());
-        this->next_positionsY.push_back(this->copy_sfmActor.position.getY());
-        this->next_yaw_angles.push_back(this->copy_sfmActor.yaw.toRadian());
-  }
+  //       // Compute Social Forces
+  //       sfm::SFM.computeForces(this->copy_sfmActor, this->otherActors);
+  //       // Update model
+  //       sfm::SFM.updatePosition(this->copy_sfmActor, this->dt_calculations);
+
+
+  //       // Add position in x, y and angle yaw to the temporary vectors
+  //       this->next_positionsX.push_back(this->copy_sfmActor.position.getX());
+  //       this->next_positionsY.push_back(this->copy_sfmActor.position.getY());
+  //       this->next_yaw_angles.push_back(this->copy_sfmActor.yaw.toRadian());
+  // }
 
 
   // Create path message
@@ -361,6 +363,65 @@ void PedestrianSFMPlugin::OnUpdate(const common::UpdateInfo &_info) {
   double dt = (_info.simTime - this->lastUpdate).Double();
 
   ignition::math::Pose3d actorPose = this->actor->WorldPose(); ////// Actor Pose
+
+
+if(this->enable_update){
+          cout<< "Update enabled" << std::endl;
+            //Save current values of sfmActor
+          utils::Vector2d initPos = this->sfmActor.position;
+          utils::Angle initYaw = this->sfmActor.yaw;
+          utils::Vector2d real_velocity = this->sfmActor.velocity;
+          double real_linearVelocity = this->sfmActor.linearVelocity;
+          double real_angularVelocity = this->sfmActor.angularVelocity;
+          utils::Vector2d real_movement = this->sfmActor.movement;
+          std::list<sfm::Goal> real_goals = this->sfmActor.goals;
+
+
+            // Clear content of temporary vectors
+          this->temp_next_positionsX.clear();
+          this->temp_next_positionsY.clear();
+          this->temp_next_yaw_angles.clear();
+
+
+          // Calculate first future positions
+          for (int i = 0; i < this->iterations; i++) {
+
+                // These functions use the real actor model pose. We do not modify the real actor model pose
+                // HandleObstacles();
+                // HandlePedestrians();
+                
+                // Compute Social Forces
+                sfm::SFM.computeForces(this->sfmActor, this->otherActors);
+                // Update model
+                sfm::SFM.updatePosition(this->sfmActor, this->dt_calculations);
+
+
+                // Add position in x, y and angle yaw to the temporary vectors
+                this->temp_next_positionsX.push_back(this->sfmActor.position.getX());
+                this->temp_next_positionsY.push_back(this->sfmActor.position.getY());
+                this->temp_next_yaw_angles.push_back(this->sfmActor.yaw.toRadian());
+          }
+
+            //Copy content of temporary vectors to the real vectors
+          this->next_positionsX = this->temp_next_positionsX;
+          this->next_positionsY = this->temp_next_positionsY;
+          this->next_yaw_angles = this->temp_next_yaw_angles;
+
+
+
+          // Reset current values 
+          this->sfmActor.position = initPos;
+          this->sfmActor.yaw = initYaw;
+          this->sfmActor.velocity = real_velocity;
+          this->sfmActor.linearVelocity = real_linearVelocity;
+          this->sfmActor.angularVelocity = real_angularVelocity;
+          this->sfmActor.movement = real_movement;
+          this->sfmActor.goals = real_goals;
+
+
+          this->enable_update = false;
+  }
+
   
   HandleObstacles();
 
