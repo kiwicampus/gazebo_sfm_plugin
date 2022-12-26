@@ -155,6 +155,10 @@ private:
 private:
   sfm::Agent sfmActor;
 
+  /// \brief copy of this actor as a SFM agent
+private:
+  sfm::Agent copy_sfmActor;
+
   /// \brief names of the other models in my walking group.
 private:
   std::vector<std::string> groupNames;
