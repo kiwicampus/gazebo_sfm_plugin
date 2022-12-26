@@ -229,6 +229,8 @@ void PedestrianSFMPlugin::Calculate_path_timerCallback() {
   for (int i = 0; i < (int)this->next_positionsX.size(); i++) {
       next_pose.pose.position.x = this->next_positionsX[i];
       next_pose.pose.position.y = this->next_positionsY[i];
+
+      // Quaternion calculation. Roll and pitch are zero. 
       double orientation_z = sin(this->next_yaw_angles[i]/2);
       double orientation_w = cos(this->next_yaw_angles[i]/2); 
       next_pose.pose.orientation.z = orientation_z;
