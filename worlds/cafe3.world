@@ -87,7 +87,7 @@
 
       <plugin name="actor1_plugin" filename="libPedestrianSFMPlugin.so">
         <velocity>1.0</velocity>
-        <radius>1.0</radius>
+        <radius>0.4</radius>
         <animation_factor>5.1</animation_factor>
         <animation_name>walking</animation_name>
         <people_distance>6.0</people_distance>
