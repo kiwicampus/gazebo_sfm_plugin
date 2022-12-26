@@ -119,19 +119,11 @@ private:
 private:
   rclcpp::TimerBase::SharedPtr timer_;
 
-
 // private:
 //   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr xPublisher_;
 
-// private:
-//   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr PathPublisher_;
-
-  /// \brief Map of publishers. Each topic corresponds to the path of an actor. Key: sfmActor.id
 private:
-  std::map<int, rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr> PathPublisherMap;
-
-private:
-  double dt_counter = 0;
+  rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr PathPublisher_;
 
 private:
   bool update = false;

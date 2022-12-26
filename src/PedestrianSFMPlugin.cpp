@@ -65,10 +65,9 @@ void PedestrianSFMPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
   this->sfmActor.id = this->actor->GetId();
   cout << "sfmActor ID: "<< this->sfmActor.id<< std::endl;
 
+  // Path Publisher for each actor created
+  this->PathPublisher_  = this->ros_node_->create_publisher<nav_msgs::msg::Path>("path_" + to_string(this->sfmActor.id), 10);
 
-  // Add publisher to the map with sfmActor.id as key
-  this->PathPublisherMap.insert({this->sfmActor.id, this->ros_node_->create_publisher<nav_msgs::msg::Path>("path_" + to_string(this->sfmActor.id), 10)});
-  
   // Initialize sfmActor position
   ignition::math::Vector3d pos = this->actor->WorldPose().Pos();
   ignition::math::Vector3d rpy = this->actor->WorldPose().Rot().Euler();
@@ -198,8 +197,7 @@ void PedestrianSFMPlugin::timerCallback() {
             path.poses.push_back(next_pose);
         }
 
-        // Choose the publisher according to the sfmActor.id and publish to corresponding topic
-        this->PathPublisherMap.find(this->sfmActor.id)->second->publish(path);
+        this->PathPublisher_->publish(path);
         
     }
 
