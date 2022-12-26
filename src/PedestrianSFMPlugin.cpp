@@ -50,9 +50,9 @@ void PedestrianSFMPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
 
   this->ros_node_ = gazebo_ros::Node::Get();
 
-  this->timer_ = this->ros_node_->create_wall_timer(
+  this->publish_future_poses_timer_ = this->ros_node_->create_wall_timer(
             std::chrono::milliseconds(1000),
-            std::bind(&PedestrianSFMPlugin::timerCallback, this));
+            std::bind(&PedestrianSFMPlugin::Calculate_path_timerCallback, this));
 
 
   // Calculate number of iterations for next calculated positions
@@ -166,7 +166,7 @@ void PedestrianSFMPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
 
 }
 
-void PedestrianSFMPlugin::timerCallback() {
+void PedestrianSFMPlugin::Calculate_path_timerCallback() {
 
   RCLCPP_INFO(this->ros_node_->get_logger(), "Helloooo from ROS2");
   for (float y : this->next_positionsY){

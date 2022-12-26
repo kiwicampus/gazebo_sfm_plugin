@@ -59,7 +59,7 @@ public:
 
   // ROS Timer
 private:
-  void timerCallback();
+  void Calculate_path_timerCallback();
 
   /// \brief Function that is called every update cycle.
   /// \param[in] _info Timing information
@@ -117,7 +117,7 @@ private:
   gazebo_ros::Node::SharedPtr ros_node_;
 
 private:
-  rclcpp::TimerBase::SharedPtr timer_;
+  rclcpp::TimerBase::SharedPtr publish_future_poses_timer_;
 
 // private:
 //   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr xPublisher_;
