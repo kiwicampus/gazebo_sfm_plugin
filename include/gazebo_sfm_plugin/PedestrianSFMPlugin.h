@@ -150,6 +150,8 @@ private:
 private:
   std::list<sfm::Goal> lastGoals;
 
+private:
+  sfm::Agent copy_sfmActor;
 
   /// \brief this actor as a SFM agent
 private:
