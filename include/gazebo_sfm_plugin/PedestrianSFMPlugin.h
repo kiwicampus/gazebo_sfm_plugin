@@ -31,13 +31,13 @@
 #include "gazebo/physics/physics.hh"
 #include "gazebo/util/system.hh"
 
+// Social Force Model
+#include <lightsfm/sfm.hpp>
+
 // ROS
 #include "rclcpp/rclcpp.hpp"
 #include <gazebo_ros/node.hpp>
 #include <nav_msgs/msg/path.hpp>
-
-// Social Force Model
-#include <lightsfm/sfm.hpp>
 
 namespace gazebo {
 class GZ_PLUGIN_VISIBLE PedestrianSFMPlugin : public ModelPlugin {
@@ -55,10 +55,6 @@ public:
 public:
   virtual void Reset();
 
-  // ROS Timer
-private:
-  void Calculate_path_timerCallback();
-
   /// \brief Function that is called every update cycle.
   /// \param[in] _info Timing information
 private:
@@ -74,6 +70,9 @@ private:
 private:
   void HandlePedestrians();
 
+  /// \brief ROS Timer
+private:
+  void Calculate_path_timerCallback();
   //-------------------------------------------------
 
   // Time to calculate future positions
