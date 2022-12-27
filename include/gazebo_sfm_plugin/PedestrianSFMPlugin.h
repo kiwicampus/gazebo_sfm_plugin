@@ -87,18 +87,6 @@ private:
 private:
   int iterations;
 
-  /// \brief next calculated positions in x
-private:
-  std::vector<float> next_positionsX;
-
-  /// \brief next calculated positions in y
-private:
-  std::vector<float> next_positionsY;
-
-  /// \brief next calculated yaw angles
-private:
-  std::vector<float> next_yaw_angles;
-
 private:
   gazebo_ros::Node::SharedPtr ros_node_;
 

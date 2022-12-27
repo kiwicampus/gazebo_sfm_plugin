@@ -188,30 +188,10 @@ void PedestrianSFMPlugin::Calculate_path_timerCallback() {
 
   RCLCPP_INFO(this->ros_node_->get_logger(), "Hello from ROS2");
 
-  this->next_positionsX.clear();
-  this->next_positionsY.clear();
-  this->next_yaw_angles.clear();
-
   // Copy sfmActor to calculate next positions without affecting model in Gazebo
   this->copy_sfmActor = this->sfmActor;
 
-
-  // Calculate first future positions
-  for (int i = 0; i < this->iterations; i++) {
-
-        // Compute Social Forces
-        sfm::SFM.computeForces(this->copy_sfmActor, this->otherActors);
-        // Update model
-        sfm::SFM.updatePosition(this->copy_sfmActor, this->dt_calculations);
-
-        // Add position in x, y and angle yaw to vectors
-        this->next_positionsX.push_back(this->copy_sfmActor.position.getX());
-        this->next_positionsY.push_back(this->copy_sfmActor.position.getY());
-        this->next_yaw_angles.push_back(this->copy_sfmActor.yaw.toRadian());
-  }
-
-
-  // Create path message
+    // Create path message
   auto path = nav_msgs::msg::Path();
   path.header.frame_id = "base_link";
   path.header.stamp = rclcpp::Clock().now();        
@@ -219,23 +199,26 @@ void PedestrianSFMPlugin::Calculate_path_timerCallback() {
   // Create pose message
   auto next_pose = geometry_msgs::msg::PoseStamped();
 
-  // Fill position and orientation values in pose message
-  for (int i = 0; i < (int)this->next_positionsX.size(); i++) {
-      next_pose.pose.position.x = this->next_positionsX[i];
-      next_pose.pose.position.y = this->next_positionsY[i];
 
-      // Quaternion calculation. Roll and pitch are zero. 
-      double orientation_z = sin(this->next_yaw_angles[i]/2);
-      double orientation_w = cos(this->next_yaw_angles[i]/2); 
-      next_pose.pose.orientation.z = orientation_z;
-      next_pose.pose.orientation.w = orientation_w; 
+  // Calculate future positions
+  for (int i = 0; i < this->iterations; i++) {
 
-      // Append pose to path message
-      path.poses.push_back(next_pose);
+        // Compute Social Forces
+        sfm::SFM.computeForces(this->copy_sfmActor, this->otherActors);
+        // Update model
+        sfm::SFM.updatePosition(this->copy_sfmActor, this->dt_calculations);
+
+        // Add position in x, y and angle to pose
+        next_pose.pose.position.x = this->copy_sfmActor.position.getX();
+        next_pose.pose.position.y = this->copy_sfmActor.position.getY();
+        // Quaternion calculation. Roll and pitch are zero. 
+        next_pose.pose.orientation.z = sin(this->copy_sfmActor.yaw.toRadian()/2);
+        next_pose.pose.orientation.w = cos(this->copy_sfmActor.yaw.toRadian()/2); 
+
+        // Append pose to path message
+        path.poses.push_back(next_pose);
   }
-
-  this->PathPublisher_->publish(path);
-    
+  this->PathPublisher_->publish(path);    
 }
 
 void PedestrianSFMPlugin::Reset() {
