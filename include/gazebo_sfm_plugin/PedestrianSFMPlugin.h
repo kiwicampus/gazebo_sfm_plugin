@@ -34,8 +34,6 @@
 // ROS
 #include "rclcpp/rclcpp.hpp"
 #include <gazebo_ros/node.hpp>
-#include <std_msgs/msg/string.hpp>
-#include <std_msgs/msg/float64.hpp>
 #include <nav_msgs/msg/path.hpp>
 
 // Social Force Model
@@ -80,22 +78,14 @@ private:
 
   // Time to calculate future positions
 private:
-  double look_ahead_time = 5;
+  double look_ahead_time;
 
 private:
-  double dt_calculations = 0.2;
+  double dt_calculations;
 
   /// \brief iterations to calculate first next positions
 private:
   int iterations;
-
-  /// \brief temp calculated positions in x
-private:
-  std::vector<float> temp_next_positionsX;
-
-  /// \brief temp calculated positions in y
-private:
-  std::vector<float> temp_next_positionsY;
 
   /// \brief next calculated positions in x
 private:
@@ -104,10 +94,6 @@ private:
   /// \brief next calculated positions in y
 private:
   std::vector<float> next_positionsY;
-
-  /// \brief temp calculated yaw angles
-private:
-  std::vector<float> temp_next_yaw_angles;
 
   /// \brief next calculated yaw angles
 private:
@@ -119,37 +105,14 @@ private:
 private:
   rclcpp::TimerBase::SharedPtr publish_future_poses_timer_;
 
-// private:
-//   rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr xPublisher_;
+  // time in ms to publish path topic
+private:
+  int publish_time;
 
 private:
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr PathPublisher_;
 
-private:
-  bool enable_update = false;
-
-  // state of last calculated pose of sfmActor
-private:
-  utils::Vector2d lastPos;
-
-private:
-  utils::Angle lastYaw;
-
-private:
-  utils::Vector2d lastVelocity;
-
-private:
-  double lastLinearVelocity;
-
-private:
-  double lastAngularVelocity;
-  
-private:
-  utils::Vector2d lastMovement;
-
-private:
-  std::list<sfm::Goal> lastGoals;
-
+  /// \brief this actor as a SFM agent
 private:
   sfm::Agent copy_sfmActor;
 

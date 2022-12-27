@@ -23,8 +23,7 @@
 #include <string>
 #include <vector>
 
-//#include <ignition/math.hh>
-//#include <ignition/math/gzmath.hh>
+
 #include <gazebo_sfm_plugin/PedestrianSFMPlugin.h>
 
 
@@ -32,31 +31,17 @@
 using namespace std;
 using namespace std::chrono;
 
-// Use auto keyword to avoid typing long
-// type definitions to get the timepoint
-// at this instant use function now()
-
 
 using namespace gazebo;
 GZ_REGISTER_MODEL_PLUGIN(PedestrianSFMPlugin)
 #define WALKING_ANIMATION "walking"
 
-/////////////////////////////////////////////////
+
 PedestrianSFMPlugin::PedestrianSFMPlugin() {
 }
 
-/////////////////////////////////////////////////
+
 void PedestrianSFMPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
-
-  this->ros_node_ = gazebo_ros::Node::Get();
-
-  this->publish_future_poses_timer_ = this->ros_node_->create_wall_timer(
-            std::chrono::milliseconds(1000),
-            std::bind(&PedestrianSFMPlugin::Calculate_path_timerCallback, this));
-
-
-  // Calculate number of iterations for next calculated positions
-  this->iterations = (int) this->look_ahead_time / this->dt_calculations;
 
   // Create sfmActor
   this->sdf = _sdf;
@@ -65,8 +50,6 @@ void PedestrianSFMPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
   this->sfmActor.id = this->actor->GetId();
   cout << "sfmActor ID: "<< this->sfmActor.id<< std::endl;
 
-  // Path Publisher for each actor created
-  this->PathPublisher_  = this->ros_node_->create_publisher<nav_msgs::msg::Path>("path_" + to_string(this->sfmActor.id), 10);
 
   // Initialize sfmActor position
   ignition::math::Vector3d pos = this->actor->WorldPose().Pos();
@@ -78,6 +61,41 @@ void PedestrianSFMPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
   this->sfmActor.linearVelocity = linvel.Length();
   ignition::math::Vector3d angvel = this->actor->WorldAngularVel();
   this->sfmActor.angularVelocity = angvel.Z(); // Length()
+
+
+  this->ros_node_ = gazebo_ros::Node::Get();
+
+  // Read delta time to publish path 
+  if (_sdf->HasElement("publish_time"))
+    this->publish_time = _sdf->Get<int>("publish_time");  
+  else
+    this->publish_time = 1000;
+
+  // Create timer to calculate and publish paths
+  this->publish_future_poses_timer_ = this->ros_node_->create_wall_timer(
+            std::chrono::milliseconds(this->publish_time),
+            std::bind(&PedestrianSFMPlugin::Calculate_path_timerCallback, this));
+
+
+  // Path Publisher for each actor created
+  this->PathPublisher_  = this->ros_node_->create_publisher<nav_msgs::msg::Path>("path_" + to_string(this->sfmActor.id), 10);
+
+
+    // Read parameters to calculate future positions
+  if (_sdf->HasElement("look_ahead_time"))
+    this->look_ahead_time = _sdf->Get<double>("look_ahead_time");  
+  else
+    this->look_ahead_time = 5.0;
+  
+  if (_sdf->HasElement("dt_calculations"))
+    this->dt_calculations = _sdf->Get<double>("dt_calculations");
+  
+  else
+    this->dt_calculations = 0.2;
+  
+
+  // Calculate number of iterations for next calculated positions
+  this->iterations = (int) this->look_ahead_time / this->dt_calculations;
 
 
   // Read in the maximum velocity of the pedestrian
@@ -168,43 +186,25 @@ void PedestrianSFMPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
 
 void PedestrianSFMPlugin::Calculate_path_timerCallback() {
 
-  RCLCPP_INFO(this->ros_node_->get_logger(), "Helloooo from ROS2");
-  for (float y : this->next_positionsY){
-    cout << "Element in y = " << y << std::endl;
-  }
-  cout << "Iterations: " << this->iterations << std::endl;
-
+  RCLCPP_INFO(this->ros_node_->get_logger(), "Hello from ROS2");
 
   this->next_positionsX.clear();
   this->next_positionsY.clear();
   this->next_yaw_angles.clear();
 
-    // Reset current values 
-  // this->copy_sfmActor.position = this->sfmActor.position;
-  // this->copy_sfmActor.yaw = this->sfmActor.yaw;
-  // this->copy_sfmActor.velocity = this->sfmActor.velocity;
-  // this->copy_sfmActor.linearVelocity = this->sfmActor.linearVelocity;
-  // this->copy_sfmActor.angularVelocity = this->sfmActor.angularVelocity;
-  // this->copy_sfmActor.movement = this->sfmActor.movement;
-  // this->copy_sfmActor.goals = this->sfmActor.goals;
+  // Copy sfmActor to calculate next positions without affecting model in Gazebo
   this->copy_sfmActor = this->sfmActor;
 
 
   // Calculate first future positions
   for (int i = 0; i < this->iterations; i++) {
 
-        // These functions use the real actor model pose. We do not modify the real actor model pose
-        // HandleObstacles();
-        // HandlePedestrians();
-
-
         // Compute Social Forces
         sfm::SFM.computeForces(this->copy_sfmActor, this->otherActors);
         // Update model
         sfm::SFM.updatePosition(this->copy_sfmActor, this->dt_calculations);
 
-
-        // Add position in x, y and angle yaw to the temporary vectors
+        // Add position in x, y and angle yaw to vectors
         this->next_positionsX.push_back(this->copy_sfmActor.position.getX());
         this->next_positionsY.push_back(this->copy_sfmActor.position.getY());
         this->next_yaw_angles.push_back(this->copy_sfmActor.yaw.toRadian());
@@ -239,7 +239,7 @@ void PedestrianSFMPlugin::Calculate_path_timerCallback() {
 }
 
 void PedestrianSFMPlugin::Reset() {
-  // this->velocity = 0.8;
+
   this->lastUpdate = 0;
 
   // Read in the goals to reach
@@ -275,7 +275,7 @@ void PedestrianSFMPlugin::Reset() {
   }
 }
 
-/////////////////////////////////////////////////
+
 void PedestrianSFMPlugin::HandleObstacles() {
   double minDist = 10000.0;
   ignition::math::Vector3d closest_obs;
@@ -286,7 +286,7 @@ void PedestrianSFMPlugin::HandleObstacles() {
     physics::ModelPtr model = this->world->ModelByIndex(i); // GetModel(i);
     if (std::find(this->ignoreModels.begin(), this->ignoreModels.end(),
                   model->GetName()) == this->ignoreModels.end()) {
-      ignition::math::Vector3d actorPos = this->actor->WorldPose().Pos(); //////////// We use the current actor pose
+      ignition::math::Vector3d actorPos = this->actor->WorldPose().Pos(); 
       ignition::math::Vector3d modelPos = model->WorldPose().Pos();
       std::tuple<bool, double, ignition::math::Vector3d> intersect =
           model->BoundingBox().Intersect(modelPos, actorPos, 0.05, 8.0);
@@ -294,12 +294,10 @@ void PedestrianSFMPlugin::HandleObstacles() {
       if (std::get<0>(intersect) == true) {
 
         ignition::math::Vector3d offset = std::get<2>(intersect) - actorPos;
-        double modelDist = offset.Length(); // - approximated_radius;
-        // double dist2 = actorPos.Distance(std::get<2>(intersect));
+        double modelDist = offset.Length(); 
 
         if (modelDist < minDist) {
           minDist = modelDist;
-          // closest_obs = offset;
           closest_obs = std::get<2>(intersect);
         }
       }
@@ -311,7 +309,6 @@ void PedestrianSFMPlugin::HandleObstacles() {
   }
 }
 
-/////////////////////////////////////////////////
 void PedestrianSFMPlugin::HandlePedestrians() {
   this->otherActors.clear();
 
@@ -320,8 +317,7 @@ void PedestrianSFMPlugin::HandlePedestrians() {
 
     if (model->GetId() != this->actor->GetId() &&
         ((int)model->GetType() == (int)this->actor->GetType())) {
-      // printf("Actor %i has detected actor %i!\n", this->actor->GetId(),
-      //        model->GetId());
+
 
       ignition::math::Pose3d modelPose = model->WorldPose();
       ignition::math::Vector3d pos =
@@ -355,13 +351,12 @@ void PedestrianSFMPlugin::HandlePedestrians() {
   }
 }
 
-/////////////////////////////////////////////////
 
 void PedestrianSFMPlugin::OnUpdate(const common::UpdateInfo &_info) {
 
   double dt = (_info.simTime - this->lastUpdate).Double();
 
-  ignition::math::Pose3d actorPose = this->actor->WorldPose(); ////// Actor Pose
+  ignition::math::Pose3d actorPose = this->actor->WorldPose(); 
   
   HandleObstacles();
 
@@ -387,10 +382,10 @@ void PedestrianSFMPlugin::OnUpdate(const common::UpdateInfo &_info) {
     yaw = current.toRadian();
   }
 
-  actorPose.Pos().X(this->sfmActor.position.getX()); /////////We update the model after doing the prediction. That's why we do not predict obstacles
+  actorPose.Pos().X(this->sfmActor.position.getX()); 
   actorPose.Pos().Y(this->sfmActor.position.getY());
   actorPose.Rot() =
-      ignition::math::Quaterniond(1.5707, 0, yaw); // rpy.Z()+yaw.Radian());
+      ignition::math::Quaterniond(1.5707, 0, yaw); 
 
   actorPose.Pos().Z(1.2138);
 

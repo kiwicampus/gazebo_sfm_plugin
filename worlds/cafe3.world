@@ -1,6 +1,8 @@
 <!-- Usage notes are located in this file, look for "Usage"-->
 <?xml version="1.0" ?>
 <sdf version="1.5">
+
+
   <world name="default">
     <gui>
       <camera name="user_camera">
@@ -73,6 +75,8 @@
       <uri>model://cafe_table</uri>
     </include>
 
+
+
     <actor name="actor1">
       <pose>-1 2 1.25 0 0 0</pose>
       <skin>
@@ -86,6 +90,9 @@
       </animation>
 
       <plugin name="actor1_plugin" filename="libPedestrianSFMPlugin.so">
+        <look_ahead_time>5.0</look_ahead_time>
+        <dt_calculations>0.2</dt_calculations>
+        <publish_time>1000</publish_time>
         <velocity>1.0</velocity>
         <radius>0.4</radius>
         <animation_factor>5.1</animation_factor>
@@ -125,6 +132,9 @@
       </animation>
 
       <plugin name="actor2_plugin" filename="libPedestrianSFMPlugin.so">
+        <look_ahead_time>5.0</look_ahead_time>
+        <dt_calculations>0.2</dt_calculations>
+        <publish_time>1000</publish_time>
         <velocity>1.2</velocity>
         <radius>0.4</radius>
         <animation_factor>5.1</animation_factor>
@@ -177,6 +187,9 @@
       </animation>
 
       <plugin name="actor4_plugin" filename="libPedestrianSFMPlugin.so">
+        <look_ahead_time>5.0</look_ahead_time>
+        <dt_calculations>0.2</dt_calculations>
+        <publish_time>1000</publish_time>
         <velocity>1.0</velocity>
         <radius>0.4</radius>
         <animation_factor>5.1</animation_factor>
@@ -216,6 +229,9 @@
       </animation>
 
       <plugin name="actor5_plugin" filename="libPedestrianSFMPlugin.so">
+        <look_ahead_time>5.0</look_ahead_time>
+        <dt_calculations>0.2</dt_calculations>
+        <publish_time>1000</publish_time>
         <velocity>0.7</velocity>
         <radius>0.4</radius>
         <animation_factor>5.1</animation_factor>
