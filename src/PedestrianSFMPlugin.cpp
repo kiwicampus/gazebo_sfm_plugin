@@ -184,7 +184,7 @@ void PedestrianSFMPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
 /////////////////////////////////////////////////
 void PedestrianSFMPlugin::Calculate_path_timerCallback() {
 
-  RCLCPP_INFO(this->ros_node_->get_logger(), "Hello from ROS2");
+  RCLCPP_INFO(this->ros_node_->get_logger(), "Hi from ROS2");
 
   // Copy sfmActor to calculate next positions without affecting model in Gazebo
   this->copy_sfmActor = this->sfmActor;
