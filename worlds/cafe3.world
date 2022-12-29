@@ -90,7 +90,7 @@
       </animation>
 
       <plugin name="actor1_plugin" filename="libPedestrianSFMPlugin.so">
-        <look_ahead_time>5.0</look_ahead_time>
+        <look_ahead_time>1.0</look_ahead_time>
         <dt_calculations>0.2</dt_calculations>
         <publish_time>1000</publish_time>
         <velocity>1.0</velocity>
@@ -132,7 +132,7 @@
       </animation>
 
       <plugin name="actor2_plugin" filename="libPedestrianSFMPlugin.so">
-        <look_ahead_time>5.0</look_ahead_time>
+        <look_ahead_time>1.0</look_ahead_time>
         <dt_calculations>0.2</dt_calculations>
         <publish_time>1000</publish_time>
         <velocity>1.2</velocity>
@@ -187,7 +187,7 @@
       </animation>
 
       <plugin name="actor4_plugin" filename="libPedestrianSFMPlugin.so">
-        <look_ahead_time>5.0</look_ahead_time>
+        <look_ahead_time>1.0</look_ahead_time>
         <dt_calculations>0.2</dt_calculations>
         <publish_time>1000</publish_time>
         <velocity>1.0</velocity>
@@ -229,7 +229,7 @@
       </animation>
 
       <plugin name="actor5_plugin" filename="libPedestrianSFMPlugin.so">
-        <look_ahead_time>5.0</look_ahead_time>
+        <look_ahead_time>1.0</look_ahead_time>
         <dt_calculations>0.2</dt_calculations>
         <publish_time>1000</publish_time>
         <velocity>0.7</velocity>
