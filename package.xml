@@ -23,10 +23,16 @@
   <depend>nav_msgs</depend>
   <depend>geometry_msgs</depend>
   
-  
+  <exec_depend>gazebo_ros_pkgs</exec_depend>
+  <exec_depend>ros2launch</exec_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
     <gazebo_ros plugin_path="${prefix}/../../lib" gazebo_media_path="${prefix}" />
+    <gazebo_ros gazebo_model_path="${prefix}/models"/>
+    <gazebo_ros gazebo_media_path="${prefix}/worlds"/>
   </export>
 </package>
