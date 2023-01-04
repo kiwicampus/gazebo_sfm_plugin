@@ -78,7 +78,7 @@ The parameters that can be configured for each pedestrian are:
 
 ## Dependencies
 
-* Yo must download and install the Social Force Model library, lightsfm https://github.com/robotics-upo/lightsfm
+* You must download and install the Social Force Model library, lightsfm https://github.com/robotics-upo/lightsfm
 
 ## Compilation
 
@@ -93,4 +93,19 @@ An example Gazebo world can be launched through:
 ```sh
 ros2 launch gazebo_sfm_plugin cafe_ros2.launch.py
 ```
+
+## Motion prediction changes
+
+In order to use this plugin to predict the future poses of each agent, some modifications were made to the source code. 
+
+
+Check out the result! 
+
+https://user-images.githubusercontent.com/102924128/210597434-9655f2f3-bc5b-4dc5-98e3-5027f6b4c319.mp4
+
+In case of questions, comments or suggestions, feel free to contact one of the collaborators of this fork. We like to collaborate C:
+
+
+
+
 
