@@ -80,7 +80,7 @@ private:
   double look_ahead_time;
 
 private:
-  double dt_calculations;
+  double prediction_time_step;
 
   /// \brief iterations to calculate first next positions
 private:
@@ -92,9 +92,9 @@ private:
 private:
   rclcpp::TimerBase::SharedPtr publish_future_poses_timer_;
 
-  // time in ms to publish path topic
+  // rate in Hz to publish path topic
 private:
-  int publish_time;
+  int publish_rate;
 
 private:
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr PathPublisher_;

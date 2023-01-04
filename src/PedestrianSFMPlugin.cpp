@@ -63,15 +63,18 @@ void PedestrianSFMPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
 
   this->ros_node_ = gazebo_ros::Node::Get();
 
-  // Read delta time to publish path 
-  if (_sdf->HasElement("publish_time"))
-    this->publish_time = _sdf->Get<int>("publish_time");  
+  // Read rate in Hz to publish path 
+  if (_sdf->HasElement("publish_rate"))
+    this->publish_rate = _sdf->Get<int>("publish_rate");  
   else
-    this->publish_time = 1000;
+    this->publish_rate = 1;
+
+  // Calculate time in ms to publish topic of path 
+  int time_ms = (int)(1000/this->publish_rate);
 
   // Create timer to calculate and publish paths
   this->publish_future_poses_timer_ = this->ros_node_->create_wall_timer(
-            std::chrono::milliseconds(this->publish_time),
+            std::chrono::milliseconds(time_ms),
             std::bind(&PedestrianSFMPlugin::Calculate_path_timerCallback, this));
 
   // Path Publisher for each actor created
@@ -85,14 +88,14 @@ void PedestrianSFMPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
   else
     this->look_ahead_time = 5.0;
   
-  if (_sdf->HasElement("dt_calculations"))
-    this->dt_calculations = _sdf->Get<double>("dt_calculations");
+  if (_sdf->HasElement("prediction_time_step"))
+    this->prediction_time_step = _sdf->Get<double>("prediction_time_step");
   
   else
-    this->dt_calculations = 0.2;
+    this->prediction_time_step = 0.2;
 
   // Calculate number of iterations for next calculated positions
-  this->iterations = (int) this->look_ahead_time / this->dt_calculations;
+  this->iterations = (int) this->look_ahead_time / this->prediction_time_step;
 
   // Read in the maximum velocity of the pedestrian
   if (_sdf->HasElement("velocity"))
@@ -214,7 +217,6 @@ void PedestrianSFMPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
 
 ///////////////////////////////////////////////// 
 void PedestrianSFMPlugin::Calculate_path_timerCallback() {
-
     // Copy sfmActor to calculate next positions without affecting model in Gazebo
   this->copy_sfmActor = this->sfmActor;
   this->copy_sfmActor.groupId = -1;
@@ -233,7 +235,7 @@ void PedestrianSFMPlugin::Calculate_path_timerCallback() {
         // // Compute Social Forces
         sfm::SFM.computeForces(this->copy_sfmActor, this->otherActors);
         // Update model
-        sfm::SFM.updatePosition(this->copy_sfmActor, this->dt_calculations);
+        sfm::SFM.updatePosition(this->copy_sfmActor, this->prediction_time_step);
 
         // Add position in x, y and angle to pose
         next_pose.pose.position.x = this->copy_sfmActor.position.getX();
@@ -404,7 +406,7 @@ void PedestrianSFMPlugin::OnUpdate(const common::UpdateInfo &_info) {
 
   // Compute Social Forces
   sfm::SFM.computeForces(this->sfmActor, this->otherActors);
-  
+
   // Update model
   sfm::SFM.updatePosition(this->sfmActor, dt);
 
