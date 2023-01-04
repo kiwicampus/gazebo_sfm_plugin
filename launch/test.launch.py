@@ -99,7 +99,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
                 "world",
                 default_value=[
-                    os.path.join(pkg_gazebo_sfm_plugin, "worlds", "cafe3.world"),
+                    os.path.join(pkg_gazebo_sfm_plugin, "worlds", "test.world"),
                     "",
                 ],
                 description="SDF world file",
