@@ -99,6 +99,10 @@ private:
 private:
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr PathPublisher_;
 
+  /// \brief List of obstacles to see
+private:
+  std::vector<int> see_obstacles_indexes;
+
   /// \brief this actor as a SFM agent
 private:
   sfm::Agent copy_sfmActor;
