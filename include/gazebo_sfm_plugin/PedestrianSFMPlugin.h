@@ -102,6 +102,9 @@ private:
   /// \brief List of obstacles to see
 private:
   std::vector<int> include_obstacles_indexes;
+  /// \brief List of pedestrians to see
+private:
+  std::vector<int> include_pedestrians_indexes;
 
   /// \brief this actor as a SFM agent
 private:

@@ -78,7 +78,7 @@ void PedestrianSFMPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
             std::bind(&PedestrianSFMPlugin::Calculate_path_timerCallback, this));
 
   // Path Publisher for each actor created
-  this->PathPublisher_  = this->ros_node_->create_publisher<nav_msgs::msg::Path>("path_" 
+  this->PathPublisher_  = this->ros_node_->create_publisher<nav_msgs::msg::Path>("agent_path_" 
     + this->actor->GetName(), 10); 
 
 
@@ -156,48 +156,39 @@ void PedestrianSFMPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
     this->sfmActor.groupId = -1;
 
   if (_sdf->HasElement("include_obstacles")){
-    // Get first model of see obstacles from xml file
+    // Get first model of include obstacles tag from xml file
     sdf::ElementPtr modelElem =
         _sdf->GetElement("include_obstacles")->GetElement("model");
     while (modelElem) {
 
-      // Get name of obstacle to see
+      // Get name of obstacle to include
       std::string obstacle_name = modelElem->Get<std::string>();
 
       // Check if it is a wildcard
       bool found_wildcard = obstacle_name.find("*") != std::string::npos;
-      if(found_wildcard){
-        RCLCPP_INFO_STREAM(this->ros_node_->get_logger(), "wildcard *: " << obstacle_name);
-        uint end = obstacle_name.find("*");
 
-        // Get index of models that begin with the name of the wildcard obstacle
-        for (unsigned int i = 0; i < this->world->ModelCount(); ++i) {
-            physics::ModelPtr model = this->world->ModelByIndex(i); // GetModel(i);
-        
-            //  if model begins with wildcard obstacle name, add index to see obstacle indexes vector
-            if (model->GetName().rfind(obstacle_name.substr(0, end), 0) == 0) { 
+      // Traverse all models of the world
+      for (unsigned int i = 0; i < this->world->ModelCount(); ++i) {
+          physics::ModelPtr model = this->world->ModelByIndex(i); // GetModel(i);
+          // if obstacle name is a wildcard
+          if(found_wildcard){
+            //  if model begins with wildcard obstacle name, add model index
+            if (model->GetName().rfind(obstacle_name.substr(0, obstacle_name.find("*")), 0) == 0) { 
               RCLCPP_INFO_STREAM(this->ros_node_->get_logger(), "Include obstacle from wildcard: " << model->GetName());
               RCLCPP_INFO_STREAM(this->ros_node_->get_logger(), "Index: " << i);
               this->include_obstacles_indexes.push_back(i);
             }
-        }
-      }
-      else{ // in case it is not a wildcard
-
-        // Get index of model with the name of the obstacle
-        for (unsigned int i = 0; i < this->world->ModelCount(); ++i) {
-            physics::ModelPtr model = this->world->ModelByIndex(i); // GetModel(i);
-        
-            // Add index to see obstacle indexes vector
+          }
+          // if obstacle is not a wildcard, add only model with obstacle name
+          else{
+            // Add model index with obstacle name
             if (model->GetName().rfind(obstacle_name, 0) == 0) { 
               RCLCPP_INFO_STREAM(this->ros_node_->get_logger(), "Just include obstacle: " << model->GetName());
               RCLCPP_INFO_STREAM(this->ros_node_->get_logger(), "Index: " << i);
               this->include_obstacles_indexes.push_back(i);
             }
-        }
+          }
       }
-
-      // Get next model in the list of see obstacles
       modelElem = modelElem->GetNextElement("model");
     }
 
@@ -205,6 +196,10 @@ void PedestrianSFMPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
   // Show all the obstacles to see for this instance
   for(size_t i = 0; i < this->include_obstacles_indexes.size(); i++){
     RCLCPP_INFO_STREAM(this->ros_node_->get_logger(), "Indexes obstacles to see: " << this->include_obstacles_indexes[i]);
+  }
+    // Show all the pedestrians to see for this instance
+  for(size_t i = 0; i < this->include_pedestrians_indexes.size(); i++){
+    RCLCPP_INFO_STREAM(this->ros_node_->get_logger(), "Indexes pedestrians to see: " << this->include_pedestrians_indexes[i]);
   }
 
   this->connections.push_back(event::Events::ConnectWorldUpdateBegin(
@@ -301,7 +296,7 @@ void PedestrianSFMPlugin::HandleObstacles() {
       physics::ModelPtr model = this->world->ModelByIndex(this->include_obstacles_indexes[i]); 
       // Verify that obstacle is not a pedestrian
       if(((int)model->GetType() != (int)this->actor->GetType())){
-      // RCLCPP_INFO_STREAM(this->ros_node_->get_logger(), "Obstacle to see: " << model->GetName());
+      
       ignition::math::Vector3d actorPos = this->actor->WorldPose().Pos();
       ignition::math::Vector3d modelPos = model->WorldPose().Pos();
       std::tuple<bool, double, ignition::math::Vector3d> intersect =
