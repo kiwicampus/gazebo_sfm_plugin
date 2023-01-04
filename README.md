@@ -98,22 +98,32 @@ ros2 launch gazebo_sfm_plugin cafe_ros2.launch.py
 
 In order to use this plugin to predict the future poses of each agent, some modifications to the original source code were made. 
 
-**Note:** explain how an instance is created every time a sfmactor is read form the world file
+**Note:** A new instance of PedestrianSFMPlugin is created for each actor with sfmPlugin specified in the world file. (This can help to understand the way this sfm plugin works).
 ## ROS2
 
 A ROS2 node was created to access all the functionalities of ROS2. 
 
 The following ROS2 components were created:
 
-* publish_future_poses_timer_: Timer to trigger calculation or future poses and publication of paths. This timer is executed at a rate in milliseconds specified by the tag *<publish_time>*. This tag was added to the existing plugin of each actor in the world file. 
-* PathPublisher_: Publisher created for each actor. Publishes the path of future poses to the topic */path_{id}*, where *id* corresponds to the sfmActor id created. Message type: *nav_msgs::msg::Path*.
+* **publish_future_poses_timer_**: Timer to trigger calculation or future poses and publication of paths. This timer is executed at a rate in milliseconds specified by the tag *<publish_time>*. This tag was added to the existing plugin of each actor in the world file. 
+* **PathPublisher_:** Publisher created for each actor. Publishes the path of future poses to the topic */path_{id}*, where *id* corresponds to the sfmActor id created. Message type: *nav_msgs::msg::Path*.
 
 
 ## Next poses calculation
 
-The calculation of the future poses for each actor 
-explain timer callback, dt iterations, look ah time, copy, grouo -1
-main components
+The calculation of the future poses for each actor is done in the function *Calculate_path_timerCallback*, which is a callback of the timer *publish_future_poses_timer_*. 
+
+To perform the calculations without affecting the real model in gazebo, a copy of *sfmActor* is created. The attribute *groupId* is set to -1 to specify that the copy does not belong to any group. 
+
+After this, a message called *path* of type *nav_msgs::msg::Path* is created, the frame_id is set to *base_link* and the time stamp is added. A message called *next_pose* of type geometry_msgs::msg::PoseStamped is also created.
+
+To calculate the future poses, the functions *computeForces* and *updatePosition* are called using the copy of *sfmActor* and the resulting position and orientation is saved in *next_pose* and added to *path*. This procedure is done n times, where n corresponds to the number of iterations (calculated using *look_ahead_time* and *dt_calculations* parameters) as follows:
+
+
+$$iterations = \frac{\text{look ahead time}}{\text{dt calculations}}$$
+
+
+
 
 ## Optimize handle functions
 
@@ -128,15 +138,14 @@ With this, we only need to traverse once the whole array of models in the world 
 **Note:** In the tag *<see_obstacles>*, if model name has a * at the end, it is a wildcard and all models beginning with that name will be included.
 
 
-
 ## Added tags in plugin 
 
 Here is a brief summary of the added tags in the world file for each actor plugin.
 
-* <look_ahead_time>: Time in the future to calculate future poses
-* <dt_calculations>: delta of time to calculate future poses using copy of sfmActor
-* <publish_time>: Rate in milliseconds to publish path 
-* <see_obstacles>: Models to include as obstacles. If model name has a * at the end, it is a wildcard and all models beginning with that name will be included.
+* **<look_ahead_time>**: Time in the future to calculate future poses
+* **<dt_calculations>**: delta of time to calculate future poses using copy of sfmActor
+* **<publish_time>**: Rate in milliseconds to publish path 
+* **<see_obstacles>**: Models to include as obstacles. If model name has a * at the end, it is a wildcard and all models beginning with that name will be included.
 
 Below can be seen a fragment of the world file with the plugin for an actor including the added tags. 
 
