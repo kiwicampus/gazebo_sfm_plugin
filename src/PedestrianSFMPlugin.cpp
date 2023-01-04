@@ -79,7 +79,7 @@ void PedestrianSFMPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
 
   // Path Publisher for each actor created
   this->PathPublisher_  = this->ros_node_->create_publisher<nav_msgs::msg::Path>("path_" 
-    + to_string(this->sfmActor.id), 10); 
+    + this->actor->GetName(), 10); 
 
 
     // Read parameters to calculate future positions
