@@ -78,7 +78,7 @@ void PedestrianSFMPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
             std::bind(&PedestrianSFMPlugin::Calculate_path_timerCallback, this));
 
   // Path Publisher for each actor created
-  this->PathPublisher_  = this->ros_node_->create_publisher<nav_msgs::msg::Path>("agent_path_" 
+  this->PathPublisher_  = this->ros_node_->create_publisher<nav_msgs::msg::Path>("/agent_path_" 
     + this->actor->GetName(), 10); 
 
 
@@ -155,51 +155,58 @@ void PedestrianSFMPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
   } else
     this->sfmActor.groupId = -1;
 
-  if (_sdf->HasElement("include_obstacles")){
-    // Get first model of include obstacles tag from xml file
+
+
+  if (_sdf->HasElement("include_models")){
+
+    // Create vector to save indexes of models to be included
+    std::vector<int> include_models_indexes;
+
+    // Get first model of include models tag from xml file
     sdf::ElementPtr modelElem =
-        _sdf->GetElement("include_obstacles")->GetElement("model");
+        _sdf->GetElement("include_models")->GetElement("model");
     while (modelElem) {
 
-      // Get name of obstacle to include
-      std::string obstacle_name = modelElem->Get<std::string>();
+      // Get name of model to include
+      std::string model_name = modelElem->Get<std::string>();
 
       // Check if it is a wildcard
-      bool found_wildcard = obstacle_name.find("*") != std::string::npos;
+      bool found_wildcard = model_name.find("*") != std::string::npos;
 
       // Traverse all models of the world
       for (unsigned int i = 0; i < this->world->ModelCount(); ++i) {
           physics::ModelPtr model = this->world->ModelByIndex(i); // GetModel(i);
-          // if obstacle name is a wildcard
+          // if model name is a wildcard
           if(found_wildcard){
-            //  if model begins with wildcard obstacle name, add model index
-            if (model->GetName().rfind(obstacle_name.substr(0, obstacle_name.find("*")), 0) == 0) { 
-              RCLCPP_INFO_STREAM(this->ros_node_->get_logger(), "Include obstacle from wildcard: " << model->GetName());
-              RCLCPP_INFO_STREAM(this->ros_node_->get_logger(), "Index: " << i);
-              this->include_obstacles_indexes.push_back(i);
+            //  if model begins with wildcard model name, add model index
+            if (model->GetName().rfind(model_name.substr(0, model_name.find("*")), 0) == 0) { 
+              include_models_indexes.push_back(i);
             }
           }
-          // if obstacle is not a wildcard, add only model with obstacle name
+          // if model is not a wildcard, add only model with model name
           else{
-            // Add model index with obstacle name
-            if (model->GetName().rfind(obstacle_name, 0) == 0) { 
-              RCLCPP_INFO_STREAM(this->ros_node_->get_logger(), "Just include obstacle: " << model->GetName());
-              RCLCPP_INFO_STREAM(this->ros_node_->get_logger(), "Index: " << i);
-              this->include_obstacles_indexes.push_back(i);
+            // Add model index with model name
+            if (model->GetName().rfind(model_name, 0) == 0) { 
+              include_models_indexes.push_back(i);
             }
           }
-      }
+        }
       modelElem = modelElem->GetNextElement("model");
     }
-
-  }
-  // Show all the obstacles to see for this instance
-  for(size_t i = 0; i < this->include_obstacles_indexes.size(); i++){
-    RCLCPP_INFO_STREAM(this->ros_node_->get_logger(), "Indexes obstacles to see: " << this->include_obstacles_indexes[i]);
-  }
-    // Show all the pedestrians to see for this instance
-  for(size_t i = 0; i < this->include_pedestrians_indexes.size(); i++){
-    RCLCPP_INFO_STREAM(this->ros_node_->get_logger(), "Indexes pedestrians to see: " << this->include_pedestrians_indexes[i]);
+    
+    RCLCPP_INFO_STREAM(this->ros_node_->get_logger(), "For: " << this->actor->GetName()); 
+      // Determine if included model is another pedestrian or obstacle for each actor
+    for(size_t i = 0; i < include_models_indexes.size(); i++){
+      physics::ModelPtr model = this->world->ModelByIndex(include_models_indexes[i]); // GetModel(i);
+      if (model->GetId() != this->actor->GetId() && ((int)model->GetType() == (int)this->actor->GetType())) {
+        this->include_pedestrians_indexes.push_back(include_models_indexes[i]);   
+        RCLCPP_INFO_STREAM(this->ros_node_->get_logger(), "Model included as pedestrian: " << model->GetName());     
+      }
+      else if(((int)model->GetType() != (int)this->actor->GetType())){
+        this->include_obstacles_indexes.push_back(include_models_indexes[i]);
+        RCLCPP_INFO_STREAM(this->ros_node_->get_logger(), "Model included as obstacle: " << model->GetName());
+      }
+    }
   }
 
   this->connections.push_back(event::Events::ConnectWorldUpdateBegin(
@@ -294,8 +301,6 @@ void PedestrianSFMPlugin::HandleObstacles() {
 
   for(size_t i = 0; i < this->include_obstacles_indexes.size(); i++){
       physics::ModelPtr model = this->world->ModelByIndex(this->include_obstacles_indexes[i]); 
-      // Verify that obstacle is not a pedestrian
-      if(((int)model->GetType() != (int)this->actor->GetType())){
       
       ignition::math::Vector3d actorPos = this->actor->WorldPose().Pos();
       ignition::math::Vector3d modelPos = model->WorldPose().Pos();
@@ -322,7 +327,6 @@ void PedestrianSFMPlugin::HandleObstacles() {
           closest_obs = std::get<2>(intersect);
         }
       }
-    }
   }
       
 
@@ -343,41 +347,38 @@ void PedestrianSFMPlugin::HandleObstacles() {
 void PedestrianSFMPlugin::HandlePedestrians() {
   this->otherActors.clear();
 
-  for (size_t i = 0; i < this->include_obstacles_indexes.size(); i++) {
-    physics::ModelPtr model = this->world->ModelByIndex(this->include_obstacles_indexes[i]); // GetModel(i);
-    // Verify that obstacle is another pedestrian
-    if (model->GetId() != this->actor->GetId() &&
-        ((int)model->GetType() == (int)this->actor->GetType())) {
-      // printf("Actor %i has detected actor %i!\n", this->actor->GetId(),
-      // model->GetId());
-      ignition::math::Pose3d modelPose = model->WorldPose();
-      ignition::math::Vector3d pos =
-          modelPose.Pos() - this->actor->WorldPose().Pos();
-      if (pos.Length() < this->peopleDistance) {
-        sfm::Agent ped;
-        ped.id = model->GetId();
-        ped.position.set(modelPose.Pos().X(), modelPose.Pos().Y());
-        ignition::math::Vector3d rpy = modelPose.Rot().Euler();
-        ped.yaw = utils::Angle::fromRadian(rpy.Z());
+  for (size_t i = 0; i < this->include_pedestrians_indexes.size(); i++) {
+    physics::ModelPtr model = this->world->ModelByIndex(this->include_pedestrians_indexes[i]); // GetModel(i);
 
-        ped.radius = this->sfmActor.radius;
-        ignition::math::Vector3d linvel = model->WorldLinearVel();
-        ped.velocity.set(linvel.X(), linvel.Y());
-        ped.linearVelocity = linvel.Length();
-        ignition::math::Vector3d angvel = model->WorldAngularVel();
-        ped.angularVelocity = angvel.Z(); // Length()
+    // printf("Actor %i has detected actor %i!\n", this->actor->GetId(),
+    // model->GetId());
+    ignition::math::Pose3d modelPose = model->WorldPose();
+    ignition::math::Vector3d pos =
+        modelPose.Pos() - this->actor->WorldPose().Pos();
+    if (pos.Length() < this->peopleDistance) {
+      sfm::Agent ped;
+      ped.id = model->GetId();
+      ped.position.set(modelPose.Pos().X(), modelPose.Pos().Y());
+      ignition::math::Vector3d rpy = modelPose.Rot().Euler();
+      ped.yaw = utils::Angle::fromRadian(rpy.Z());
 
-        // check if the ped belongs to my group
-        if (this->sfmActor.groupId != -1) {
-          std::vector<std::string>::iterator it;
-          it = find(groupNames.begin(), groupNames.end(), model->GetName());
-          if (it != groupNames.end())
-            ped.groupId = this->sfmActor.groupId;
-          else
-            ped.groupId = -1;
-        }
-        this->otherActors.push_back(ped);
+      ped.radius = this->sfmActor.radius;
+      ignition::math::Vector3d linvel = model->WorldLinearVel();
+      ped.velocity.set(linvel.X(), linvel.Y());
+      ped.linearVelocity = linvel.Length();
+      ignition::math::Vector3d angvel = model->WorldAngularVel();
+      ped.angularVelocity = angvel.Z(); // Length()
+
+      // check if the ped belongs to my group
+      if (this->sfmActor.groupId != -1) {
+        std::vector<std::string>::iterator it;
+        it = find(groupNames.begin(), groupNames.end(), model->GetName());
+        if (it != groupNames.end())
+          ped.groupId = this->sfmActor.groupId;
+        else
+          ped.groupId = -1;
       }
+      this->otherActors.push_back(ped);
     }
   }
   // printf("Actor %s has detected %i actors!\n",
