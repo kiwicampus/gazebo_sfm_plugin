@@ -133,7 +133,7 @@ Both functions are called every time when the function *OnUpdate* is executed. T
 
 In the original code, all models belonging to the world were checked to determine if they were pedestrians or obstacles. To optimize this, a tag called *<include_models>* was added to each actor plugin in the world file. In this tag, all the models (obstacles or pedestrians) to be taken into account are included. This information is then used in the constructor of each actor to fill the vectors *include_obstacles_indexes* and *include_pedestrians_indexes* with the indexes of the required models. 
 
-With this, we only need to traverse once the whole array of models in the world for each actor and then use only the elements with indexes specified by *include_obstacles_indexes* and *include_pedestrians_indexes* to perform the calculations in the functions *HandleObstacles* and *HandlePedestrians*. 
+With this, we only need to traverse once the whole array of models in the world for each actor and then use only the elements with indexes specified by the vectors *include_obstacles_indexes* and *include_pedestrians_indexes* to perform the calculations in the functions *HandleObstacles* and *HandlePedestrians*. With these vectors, we no longer need the tag *<ignore_obstacles>*. 
 
 **Note:** In the tag *<include_models>*, if model name has a * at the end, it is a wildcard and all models beginning with that name will be included.
 
