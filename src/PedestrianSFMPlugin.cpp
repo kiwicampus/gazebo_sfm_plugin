@@ -226,7 +226,7 @@ void PedestrianSFMPlugin::Calculate_path_timerCallback() {
     // Create path message
   auto path = nav_msgs::msg::Path();
   path.header.frame_id = "base_link";
-  path.header.stamp = rclcpp::Clock().now();        
+  path.header.stamp = ros_node_->now();        
 
   // Create pose message
   auto next_pose = geometry_msgs::msg::PoseStamped();
