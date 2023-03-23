@@ -38,6 +38,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include <gazebo_ros/node.hpp>
 #include <nav_msgs/msg/path.hpp>
+#include <nav_msgs/msg/odometry.hpp>
 
 namespace gazebo {
 class GZ_PLUGIN_VISIBLE PedestrianSFMPlugin : public ModelPlugin {
@@ -98,6 +99,7 @@ private:
 
 private:
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr PathPublisher_;
+  rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr speed_publisher_;
 
   /// \brief List of obstacles to see
 private:

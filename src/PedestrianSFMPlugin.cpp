@@ -81,6 +81,10 @@ void PedestrianSFMPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
   this->PathPublisher_  = this->ros_node_->create_publisher<nav_msgs::msg::Path>("/agent_path_" 
     + this->actor->GetName(), 10); 
 
+  // Speed Publisher for each actor created
+  this->speed_publisher_  = this->ros_node_->create_publisher<nav_msgs::msg::Odometry>("/agent_speed_" 
+    + this->actor->GetName(), 10); 
+
 
     // Read parameters to calculate future positions
   if (_sdf->HasElement("look_ahead_time"))
@@ -223,6 +227,9 @@ void PedestrianSFMPlugin::Calculate_path_timerCallback() {
   this->copy_sfmActor = this->sfmActor;
   this->copy_sfmActor.groupId = -1;
 
+  auto current_pose = this->copy_sfmActor.position;
+  auto current_speed =  this->copy_sfmActor.velocity;
+
     // Create path message
   auto path = nav_msgs::msg::Path();
   path.header.frame_id = "map";
@@ -250,6 +257,17 @@ void PedestrianSFMPlugin::Calculate_path_timerCallback() {
         path.poses.push_back(next_pose);
   }
   this->PathPublisher_->publish(path);   
+
+  nav_msgs::msg::Odometry odom_msg;
+  odom_msg.header.frame_id = "map";
+  odom_msg.header.stamp = ros_node_->now();  
+  odom_msg.pose.pose.position.x = current_pose.getX();
+  odom_msg.pose.pose.position.y = current_pose.getY();
+  odom_msg.pose.pose.orientation.z = sin(this->copy_sfmActor.yaw.toRadian()/2);
+  odom_msg.pose.pose.orientation.w = cos(this->copy_sfmActor.yaw.toRadian()/2);
+  odom_msg.twist.twist.linear.x = current_speed.getX();
+  odom_msg.twist.twist.linear.y = current_speed.getY();
+  speed_publisher_->publish(odom_msg);
 
 
 }
