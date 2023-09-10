@@ -24,7 +24,7 @@
 // C++
 #include <algorithm>
 #include <string>
-#include <vector>
+#include <map>
 
 // Gazebo
 #include "gazebo/common/Plugin.hh"
@@ -33,6 +33,12 @@
 
 // Social Force Model
 #include <lightsfm/sfm.hpp>
+
+// ROS
+#include "rclcpp/rclcpp.hpp"
+#include <gazebo_ros/node.hpp>
+#include <nav_msgs/msg/path.hpp>
+#include <nav_msgs/msg/odometry.hpp>
 
 namespace gazebo {
 class GZ_PLUGIN_VISIBLE PedestrianSFMPlugin : public ModelPlugin {
@@ -65,7 +71,46 @@ private:
 private:
   void HandlePedestrians();
 
+  /// \brief ROS Timer
+private:
+  void Calculate_path_timerCallback();
   //-------------------------------------------------
+
+  // Time to calculate future positions
+private:
+  double look_ahead_time;
+
+private:
+  double prediction_time_step;
+
+  /// \brief iterations to calculate first next positions
+private:
+  int iterations;
+
+private:
+  gazebo_ros::Node::SharedPtr ros_node_;
+
+private:
+  rclcpp::TimerBase::SharedPtr publish_future_poses_timer_;
+
+  // rate in Hz to publish path topic
+private:
+  int publish_rate;
+
+private:
+  rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr PathPublisher_;
+  rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr speed_publisher_;
+
+  /// \brief List of obstacles to see
+private:
+  std::vector<int> include_obstacles_indexes;
+  /// \brief List of pedestrians to see
+private:
+  std::vector<int> include_pedestrians_indexes;
+
+  /// \brief this actor as a SFM agent
+private:
+  sfm::Agent copy_sfmActor;
 
   /// \brief this actor as a SFM agent
 private:
